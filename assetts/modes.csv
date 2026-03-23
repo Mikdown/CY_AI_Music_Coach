@@ -1,0 +1,85 @@
+scale_name,url,notes,signature
+A Ionian,https://pulse.berklee.edu/scales/a-ionian-scale.html,A B C# D E F# G#,3 sharps
+Bb Ionian,https://pulse.berklee.edu/scales/b-flat-ionian-scale.html,Bb C D Eb F G A,2 flats
+B Ionian,https://pulse.berklee.edu/scales/b-ionian-scale.html,B C# D# E F# G# A#,5 sharps
+C Ionian,https://pulse.berklee.edu/scales/c-ionian-scale.html,C D E F G A B,0 flats or sharps
+Db Ionian,https://pulse.berklee.edu/scales/d-flat-ionian-scale.html,Db Eb F Gb Ab Bb C,5 flats
+D Ionian,https://pulse.berklee.edu/scales/d-ionian-scale.html,D E F# G A B C#,2 sharps
+Eb Ionian,https://pulse.berklee.edu/scales/e-flat-ionian-scale.html,Eb F G Ab Bb C D,3 flats
+E Ionian,https://pulse.berklee.edu/scales/e-ionian-scale.html,E F# G# A B C# D#,4 sharps
+F Ionian,https://pulse.berklee.edu/scales/f-ionian-scale.html,F G A Bb C D E,1 flat
+F# Ionian,https://pulse.berklee.edu/scales/f-sharp-ionian-scale.html,F# G# A# B C# D# E#,6 sharps
+G Ionian,https://pulse.berklee.edu/scales/g-ionian-scale.html,G A B C D E F#,1 sharp
+Ab Ionian,https://pulse.berklee.edu/scales/a-flat-ionian-scale.html,Ab Bb C Db Eb F G,4 flats
+A Dorian,https://pulse.berklee.edu/scales/a-dorian-scale.html,A B C D E F# G,1 sharp
+Bb Dorian,https://pulse.berklee.edu/scales/b-flat-dorian-scale.html,Bb C Db Eb F G Ab,4 flats
+B Dorian,https://pulse.berklee.edu/scales/b-dorian-scale.html,B C# D E F# G# A,3 sharps
+C Dorian,https://pulse.berklee.edu/scales/c-dorian-scale.html,C D Eb F G A Bb,2 flats
+C# Dorian,https://pulse.berklee.edu/scales/c-sharp-dorian-scale.html,C# D# E F# G# A# B,5 sharps
+D Dorian,https://pulse.berklee.edu/scales/d-dorian-scale.html,D E F G A B C,0 flats or sharps
+Eb Dorian,https://pulse.berklee.edu/scales/e-flat-dorian-scale.html,Eb F Gb Ab Bb C Db,5 flats
+E Dorian,https://pulse.berklee.edu/scales/e-dorian-scale.html,E F# G A B C# D,2 sharps
+F Dorian,https://pulse.berklee.edu/scales/f-dorian-scale.html,F G Ab Bb C D Eb,3 flats
+F# Dorian,https://pulse.berklee.edu/scales/f-sharp-dorian-scale.html,F# G# A B C# D# E,4 sharps
+G Dorian,https://pulse.berklee.edu/scales/g-dorian-scale.html,G A Bb C D E F,1 flat
+G# Dorian,https://pulse.berklee.edu/scales/g-sharp-dorian-scale.html,G# A# B C# D# E# F#,6 sharps
+A Phrygian,https://pulse.berklee.edu/scales/a-phrygian-scale.html,A Bb C D E F G,1 flat
+A# Phrygian,https://pulse.berklee.edu/scales/a-sharp-phrygian-scale.html,A# B C# D# E# F# G#,6 sharps
+B Phrygian,https://pulse.berklee.edu/scales/b-phrygian-scale.html,B C D E F# G A,1 sharp
+C Phrygian,https://pulse.berklee.edu/scales/c-phrygian-scale.html,C Db Eb F G Ab Bb,4 flats
+C# Phrygian,https://pulse.berklee.edu/scales/c-sharp-phrygian-scale.html,C# D E F# G# A B,3 sharps
+D Phrygian,https://pulse.berklee.edu/scales/d-phrygian-scale.html,D Eb F G A Bb C,2 flats
+D# Phrygian,https://pulse.berklee.edu/scales/d-sharp-phrygian-scale.html,D# E F# G# A# B C#,5 sharps
+E Phrygian,https://pulse.berklee.edu/scales/e-phrygian-scale.html,E F G A B C D,0 flats or sharps
+F Phrygian,https://pulse.berklee.edu/scales/f-phrygian-scale.html,F Gb Ab Bb C Db Eb,5 flats
+F# Phrygian,https://pulse.berklee.edu/scales/f-sharp-phrygian-scale.html,F# G A B C# D E,2 sharps
+G Phrygian,https://pulse.berklee.edu/scales/g-phrygian-scale.html,G Ab Bb C D Eb F,3 flats
+G# Phrygian,https://pulse.berklee.edu/scales/g-sharp-phrygian-scale.html,G# A B C# D# E F#,4 sharps
+A Lydian,https://pulse.berklee.edu/scales/a-lydian-scale.html,A B C# D# E F# G#,4 sharps
+Bb Lydian,https://pulse.berklee.edu/scales/b-flat-lydian-scale.html,Bb C D E F G A,1 flat
+B Lydian,https://pulse.berklee.edu/scales/b-lydian-scale.html,B C# D# E# F# G# A#,6 sharps
+C Lydian,https://pulse.berklee.edu/scales/c-lydian-scale.html,C D E F# G A B,1 sharp
+Db Lydian,https://pulse.berklee.edu/scales/d-flat-lydian-scale.html,Db Eb F G Ab Bb C,4 flats
+D Lydian,https://pulse.berklee.edu/scales/d-lydian-scale.html,D E F# G# A B C#,3 sharps
+Eb Lydian,https://pulse.berklee.edu/scales/e-flat-lydian-scale.html,Eb F G A Bb C D,2 flats
+E Lydian,https://pulse.berklee.edu/scales/e-lydian-scale.html,E F# G# A# B C# D#,5 sharps
+F Lydian,https://pulse.berklee.edu/scales/f-lydian-scale.html,F G A B C D E,0 flats or sharps
+Gb Lydian,https://pulse.berklee.edu/scales/g-flat-lydian-scale.html,Gb Ab Bb C Db Eb F,5 flats
+G Lydian,https://pulse.berklee.edu/scales/g-lydian-scale.html,G A B C# D E F#,2 sharps
+Ab Lydian,https://pulse.berklee.edu/scales/a-flat-lydian-scale.html,Ab Bb C D Eb F G,3 flats
+A Mixolydian,https://pulse.berklee.edu/scales/a-mixolydian-scale.html,A B C# D E F# G,2 sharps
+Bb Mixolydian,https://pulse.berklee.edu/scales/b-flat-mixolydian-scale.html,Bb C D Eb F G Ab,3 flats
+B Mixolydian,https://pulse.berklee.edu/scales/b-mixolydian-scale.html,B C# D# E F# G# A,4 sharps
+C Mixolydian,https://pulse.berklee.edu/scales/c-mixolydian-scale.html,C D E F G A Bb,1 flat
+C# Mixolydian,https://pulse.berklee.edu/scales/c-sharp-mixolydian-scale.html,C# D# E# F# G# A# B,6 sharps
+D Mixolydian,https://pulse.berklee.edu/scales/d-mixolydian-scale.html,D E F# G A B C,1 sharp
+Eb Mixolydian,https://pulse.berklee.edu/scales/e-flat-mixolydian-scale.html,Eb F G Ab Bb C Db,4 flats
+E Mixolydian,https://pulse.berklee.edu/scales/e-mixolydian-scale.html,E F# G# A B C# D,3 sharps
+F Mixolydian,https://pulse.berklee.edu/scales/f-mixolydian-scale.html,F G A Bb C D Eb,2 flats
+F# Mixolydian,https://pulse.berklee.edu/scales/f-sharp-mixolydian-scale.html,F# G# A# B C# D# E,5 sharps
+G Mixolydian,https://pulse.berklee.edu/scales/g-mixolydian-scale.html,G A B C D E F,0 flats or sharps
+Ab Mixolydian,https://pulse.berklee.edu/scales/a-flat-mixolydian-scale.html,Ab Bb C Db Eb F Gb,5 flats
+A Aeolian,https://pulse.berklee.edu/scales/a-aeolian-scale.html,A B C D E F G,0 flats or sharps
+Bb Aeolian,https://pulse.berklee.edu/scales/b-flat-aeolian-scale.html,Bb C Db Eb F Gb Ab,5 flats
+B Aeolian,https://pulse.berklee.edu/scales/b-aeolian-scale.html,B C# D E F# G A,2 sharps
+C Aeolian,https://pulse.berklee.edu/scales/c-aeolian-scale.html,C D Eb F G Ab Bb,3 flats
+C# Aeolian,https://pulse.berklee.edu/scales/c-sharp-aeolian-scale.html,C# D# E F# G# A B,4 sharps
+D Aeolian,https://pulse.berklee.edu/scales/d-aeolian-scale.html,D E F G A Bb C,1 flat
+D# Aeolian,https://pulse.berklee.edu/scales/d-sharp-aeolian-scale.html,D# E# F# G# A# B C#,6 sharps
+E Aeolian,https://pulse.berklee.edu/scales/e-aeolian-scale.html,E F# G A B C D,1 sharp
+F Aeolian,https://pulse.berklee.edu/scales/f-aeolian-scale.html,F G Ab Bb C Db Eb,4 flats
+F# Aeolian,https://pulse.berklee.edu/scales/f-sharp-aeolian-scale.html,F# G# A B C# D E,3 sharps
+G Aeolian,https://pulse.berklee.edu/scales/g-aeolian-scale.html,G A Bb C D Eb F,2 flats
+G# Aeolian,https://pulse.berklee.edu/scales/g-sharp-aeolian-scale.html,G# A# B C# D# E F#,5 sharps
+A Locrian,https://pulse.berklee.edu/scales/a-locrian-scale.html,A Bb C D Eb F G,2 flats
+A# Locrian,https://pulse.berklee.edu/scales/a-sharp-locrian-scale.html,A# B C# D# E F# G#,5 sharps
+B Locrian,https://pulse.berklee.edu/scales/b-locrian-scale.html,B C D E F G A,0 flats or sharps
+C Locrian,https://pulse.berklee.edu/scales/c-locrian-scale.html,C Db Eb F Gb Ab Bb,5 flats
+C# Locrian,https://pulse.berklee.edu/scales/c-sharp-locrian-scale.html,C# D E F# G A B,2 sharps
+D Locrian,https://pulse.berklee.edu/scales/d-locrian-scale.html,D Eb F G Ab Bb C,3 flats
+D# Locrian,https://pulse.berklee.edu/scales/d-sharp-locrian-scale.html,D# E F# G# A B C#,4 sharps
+E Locrian,https://pulse.berklee.edu/scales/e-locrian-scale.html,E F G A Bb C D,1 flat
+F Locrian,https://pulse.berklee.edu/scales/f-locrian-scale.html,F Gb Ab Bb Cb Db Eb,6 sharps
+F# Locrian,https://pulse.berklee.edu/scales/f-sharp-locrian-scale.html,F# G A B C D E,1 sharp
+G Locrian,https://pulse.berklee.edu/scales/g-locrian-scale.html,G Ab Bb C Db Eb F,4 flats
+G# Locrian,https://pulse.berklee.edu/scales/g-sharp-locrian-scale.html,G# A B C# D E F#,3 sharps
