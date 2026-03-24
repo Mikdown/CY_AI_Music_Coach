@@ -323,8 +323,37 @@ for message in st.session_state.messages[1:]:  # Skip system message
         with st.chat_message("assistant", avatar="🤖"):
             st.write(message.content)
 
+# Show example prompts if no messages (first interaction only)
+if len(st.session_state.messages) == 1:  # Only system message
+    st.markdown("### 💡 **Try asking me:**")
+    
+    example_prompts = [
+        "I don't know what to practice today, please help!",
+        "I need some motivation to practice today.",
+        "I'm a beginner looking to learn major scales.",
+        "What's the best way to warm up before practice?",
+        "Can you create a 30-minute practice plan for me?"
+    ]
+    
+    cols = st.columns(2)
+    for idx, prompt in enumerate(example_prompts):
+        col = cols[idx % 2]
+        with col:
+            if st.button(f"📝 {prompt}", key=f"example_{idx}"):
+                st.session_state.example_prompt = prompt
+                st.rerun()
+
+# Handle example prompt click
+if "example_prompt" in st.session_state and st.session_state.example_prompt:
+    user_input = st.session_state.example_prompt
+    del st.session_state.example_prompt
+else:
+    user_input = None
+
 # Chat input
-user_input = st.chat_input("Ask your Guitar Coach...", key="user_input")
+chat_input = st.chat_input("Ask your Guitar Coach...", key="user_input")
+if chat_input:
+    user_input = chat_input
 
 if user_input:
     # Add user message to display
