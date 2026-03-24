@@ -178,6 +178,8 @@ if "user_responses" not in st.session_state:
     st.session_state.user_responses = {}
 if "plan_generated" not in st.session_state:
     st.session_state.plan_generated = False
+if "plan_confirmed" not in st.session_state:
+    st.session_state.plan_confirmed = False
 
 # Define the 5 assessment questions
 ASSESSMENT_QUESTIONS = [
@@ -347,7 +349,7 @@ if st.session_state.current_step < len(ASSESSMENT_QUESTIONS):
     st.markdown(f"### Question {question_number} of 5")
     st.markdown(f"**{current_question}**")
     
-    # Input for this question
+    # Input for this question (st.chat_input naturally focuses for interaction)
     answer_input = st.chat_input(f"Your answer to question {question_number}:", key=f"answer_{st.session_state.current_step}")
     
     if answer_input:
@@ -385,27 +387,54 @@ else:
     # All assessment questions answered - generate practice plan
     if len(st.session_state.user_responses) == len(ASSESSMENT_QUESTIONS):
         # Check if we need to generate the initial practice plan
-        if "plan_generated" not in st.session_state:
+        if not st.session_state.plan_generated:
             # Generate the practice plan based on all 5 answers
-            plan_prompt = f"""Based on the following responses, create a personalized 30-minute practice session:
-
-1. Guitar Type: {st.session_state.user_responses.get('step_1', 'Not provided')}
-2. Skill Level: {st.session_state.user_responses.get('step_2', 'Not provided')}
-3. Genre/Style: {st.session_state.user_responses.get('step_3', 'Not provided')}
-4. Session Focus: {st.session_state.user_responses.get('step_4', 'Not provided')}
-5. Key/Mood: {st.session_state.user_responses.get('step_5', 'Not provided')}
-
-Create a detailed 30-minute practice plan with specific time slots and exercises tailored to these preferences."""
+            guitar_type = st.session_state.user_responses.get('step_1', 'Not provided')
+            skill_level = st.session_state.user_responses.get('step_2', 'Not provided')
+            genre = st.session_state.user_responses.get('step_3', 'Not provided')
+            focus = st.session_state.user_responses.get('step_4', 'Not provided')
+            mood = st.session_state.user_responses.get('step_5', 'Not provided')
             
-            # Add plan request to history
-            st.session_state.messages.append(HumanMessage(content=plan_prompt))
+            # Create a FRESH conversation for plan generation to avoid assessment-phase instructions
+            plan_generation_llm = st.session_state.llm
+            plan_system_prompt = f"""You are Guitar Coach AI, creating personalized 30-minute practice sessions.
+
+USER PREFERENCES FOR THIS SESSION:
+- Guitar Type: {guitar_type}
+- Skill Level: {skill_level}
+- Genre/Style: {genre}
+- Session Focus: {focus}
+- Key/Mood: {mood}
+
+YOUR JOB: Generate a complete, detailed 30-minute practice plan with EXACT time slots for every single exercise.
+
+FORMATTING RULES (NON-NEGOTIABLE):
+1. EVERY exercise MUST have start and end times in format: M:SS–M:SS
+2. Total time MUST equal exactly 30 minutes
+3. Minimum 4 distinct sections for variety
+4. Example times: 0:00–5:00 (warm-up), 5:00–15:00 (main work), 15:00–25:00 (challenge), 25:00–30:00 (cool-down)
+
+OUTPUT FORMAT:
+🎸 30-Minute {guitar_type} Guitar Practice Session
+Level: {skill_level} | Genre: {genre} | Mood: {mood}
+
+0:00–5:00 | Section Name | Description tailored to {guitar_type}
+5:00–15:00 | Section Name | Description tailored to {guitar_type}
+15:00–25:00 | Section Name | Description tailored to {guitar_type}
+25:00–30:00 | Section Name | Description tailored to {guitar_type}
+
+NOW GENERATE THE PLAN WITH EXACT TIME SLOTS FOR EVERY EXERCISE:"""
             
-            # Generate plan from AI
+            # Generate plan from AI with fresh context (no assessment-phase instructions)
             with st.chat_message("assistant", avatar="🤖"):
                 with st.spinner("🎵 Coach is creating your personalized practice plan..."):
                     try:
-                        response = st.session_state.llm.invoke(st.session_state.messages)
+                        plan_messages = [
+                            SystemMessage(content=plan_system_prompt)
+                        ]
+                        response = plan_generation_llm.invoke(plan_messages)
                         st.write(response.content)
+                        st.session_state.messages.append(HumanMessage(content=f"Generated practice plan for {guitar_type} guitar"))
                         st.session_state.messages.append(response)
                         st.session_state.plan_generated = True
                     except Exception as e:
@@ -418,28 +447,43 @@ Create a detailed 30-minute practice plan with specific time slots and exercises
                 if response_key in st.session_state.user_responses:
                     st.write(f"**Q{i}:** {st.session_state.user_responses[response_key]}")
         
-        # Input for follow-up requests
+        # Follow-up section with clear instructions
         st.markdown("---")
-        st.markdown("### Follow-up Questions")
-        user_input = st.chat_input("Ask for adjustments to your practice plan or any follow-up questions:", key="user_input")
+        st.markdown("### 💬 Follow-up Questions")
+        st.info("""
+        **📝 What you can do next:**
+        - **Ask for adjustments:** Type any questions or requests to modify your practice plan (e.g., "Can you add more warmup time?")
+        - **Generate the plan:** Type `none` to proceed with the current practice plan as-is
+        """)
+        
+        # Input for follow-up requests (st.chat_input naturally focuses for interaction)
+        user_input = st.chat_input("Ask for adjustments to your practice plan or type 'none' to proceed:", key="user_input")
         
         if user_input:
-            # Display user input
-            with st.chat_message("user", avatar="🎸"):
-                st.write(user_input)
-            
-            # Add to history
-            st.session_state.messages.append(HumanMessage(content=user_input))
-            
-            # Get AI response
-            with st.chat_message("assistant", avatar="🤖"):
-                with st.spinner("🎵 Coach is responding..."):
-                    try:
-                        response = st.session_state.llm.invoke(st.session_state.messages)
-                        st.write(response.content)
-                        st.session_state.messages.append(response)
-                    except Exception as e:
-                        st.error(f"❌ Error: {e}")
+            # Check if user wants to proceed without modifications
+            if user_input.lower().strip() == "none":
+                # User confirmed they're ready to start the plan
+                st.session_state.plan_confirmed = True
+                with st.chat_message("assistant", avatar="🤖"):
+                    st.success("✅ Great! Your practice plan is ready. You can start whenever you're ready! 🎸")
+                st.rerun()
+            else:
+                # Display user input
+                with st.chat_message("user", avatar="🎸"):
+                    st.write(user_input)
+                
+                # Add to history
+                st.session_state.messages.append(HumanMessage(content=user_input))
+                
+                # Get AI response
+                with st.chat_message("assistant", avatar="🤖"):
+                    with st.spinner("🎵 Coach is responding..."):
+                        try:
+                            response = st.session_state.llm.invoke(st.session_state.messages)
+                            st.write(response.content)
+                            st.session_state.messages.append(response)
+                        except Exception as e:
+                            st.error(f"❌ Error: {e}")
     else:
         # Show first question if no messages yet
         if len(st.session_state.messages) == 1:

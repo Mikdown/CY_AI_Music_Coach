@@ -411,8 +411,67 @@ def main():
         if current_step > 5:
             conversation_history.append(HumanMessage(content=user_query))
         
-        # If all questions answered, generate the practice plan
-        if current_step > 5:
+        # If all questions answered, generate the practice plan (only on first move to step 6)
+        if current_step > 5 and len(user_responses) == 5:
+            # Create a structured plan prompt on the first iteration
+            guitar_type = user_responses.get('question_1', 'Not provided')
+            skill_level = user_responses.get('question_2', 'Not provided')
+            genre = user_responses.get('question_3', 'Not provided')
+            focus = user_responses.get('question_4', 'Not provided')
+            mood = user_responses.get('question_5', 'Not provided')
+            
+            plan_prompt = f"""YOU MUST CREATE A 30-MINUTE PRACTICE SESSION WITH EXPLICIT TIME LIMITS FOR EACH SECTION.
+
+User Preferences:
+- Guitar Type: {guitar_type}
+- Skill Level: {skill_level}
+- Genre/Style: {genre}
+- Session Focus: {focus}
+- Key/Mood: {mood}
+
+MANDATORY FORMAT REQUIREMENTS - READ CAREFULLY:
+1. EVERY SINGLE EXERCISE must have a time slot in the format: START:TIME–END:TIME
+2. Times must use this exact format: M:SS–M:SS (examples: 0:00–5:00, 5:00–15:00, 25:00–30:00)
+3. ALL time slots MUST add up to exactly 30 minutes
+4. Do NOT skip time designations
+5. Do NOT use ranges like "5-10 minutes" - use exact time slots only
+
+REQUIRED OUTPUT STRUCTURE - FOLLOW THIS EXACTLY:
+🎸 30-Minute {guitar_type} Guitar Practice Session
+Level: {skill_level} | Genre: {genre} | Mood: {mood}
+
+Time Slot | Exercise Name | Duration | Description
+0:00–5:00 | [Exercise Name] | 5 min | [Specific details tailored to {guitar_type}]
+5:00–15:00 | [Exercise Name] | 10 min | [Specific details tailored to {guitar_type}]
+15:00–25:00 | [Exercise Name] | 10 min | [Specific details tailored to {guitar_type}]
+25:00–30:00 | [Exercise Name] | 5 min | [Specific details tailored to {guitar_type}]
+
+EXAMPLE OF CORRECT FORMAT:
+🎸 30-Minute Electric Guitar Practice Session
+Level: Intermediate | Genre: Rock | Mood: Energetic
+
+0:00–5:00 | Finger Warm-up | 5 min | Light stretching and finger independence drills
+5:00–15:00 | Power Chord Progression | 10 min | E5-A5-D5 progression at 90 BPM with distortion
+15:00–25:00 | Pentatonic Scale Work | 10 min | A minor pentatonic bending and phrasing exercises
+25:00–30:00 | Cool Down & Reflection | 5 min | Clean tone improvisation, review what worked
+
+NOW CREATE THE PLAN FOR THIS USER WITH EXACT TIME SLOTS. EVERY EXERCISE MUST HAVE A TIME DESIGNATION."""
+            
+            # Replace the user query with the plan prompt for proper generation
+            conversation_history[-1] = HumanMessage(content=plan_prompt)
+            
+            # Mark that we've generated the plan prompt
+            user_responses["plan_requested"] = True
+            
+            try:
+                response = llm.invoke(conversation_history)
+                print(f"🎵 Coach: {response.content}\n")
+                conversation_history.append(response)
+            except Exception as e:
+                print(f"❌ Error: {e}\n")
+        
+        # For follow-up questions after plan is generated
+        elif current_step > 5 and "plan_requested" in user_responses:
             try:
                 response = llm.invoke(conversation_history)
                 print(f"🎵 Coach: {response.content}\n")
