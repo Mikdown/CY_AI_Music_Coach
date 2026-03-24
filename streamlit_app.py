@@ -349,7 +349,8 @@ if st.session_state.current_step < len(ASSESSMENT_QUESTIONS):
     st.markdown(f"### Question {question_number} of 5")
     st.markdown(f"**{current_question}**")
     
-    # Input for this question (st.chat_input naturally focuses for interaction)
+    # Input for this question
+    # Note: st.chat_input() is naturally interactive and users can click to focus
     answer_input = st.chat_input(f"Your answer to question {question_number}:", key=f"answer_{st.session_state.current_step}")
     
     if answer_input:
@@ -456,7 +457,8 @@ NOW GENERATE THE PLAN WITH EXACT TIME SLOTS FOR EVERY EXERCISE:"""
         - **Generate the plan:** Type `none` to proceed with the current practice plan as-is
         """)
         
-        # Input for follow-up requests (st.chat_input naturally focuses for interaction)
+        # Input for follow-up requests
+        # Note: st.chat_input() is naturally interactive and users can click to focus
         user_input = st.chat_input("Ask for adjustments to your practice plan or type 'none' to proceed:", key="user_input")
         
         if user_input:
