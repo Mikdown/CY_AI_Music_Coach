@@ -386,26 +386,35 @@ def main():
         # Store response if in question phase
         if current_step <= 5:
             user_responses[f"question_{current_step}"] = user_query
+            
+            # Check for out-of-context responses during assessment
+            # Simple heuristic: check if response is very short or contains certain keywords
+            is_likely_out_of_context = False
+            out_of_context_keywords = [
+                "let's focus", "let's talk", "tell me", "explain", "how do",
+                "what about", "why", "when", "where", "show me", "help me"
+            ]
+            
+            # Check if response seems off-topic
+            response_lower = user_query.lower()
+            if any(keyword in response_lower for keyword in out_of_context_keywords):
+                # This might be out of context - ask them to focus on the current question
+                print(f"🎵 Coach: I appreciate that! 🎸 Let's focus on creating your practice plan first.\n")
+                print(f"We're on question {current_step} of 5: {questions[current_step - 1]}\n")
+                # Don't increment step, ask the question again
+                continue
+            
+            # Move to next step
+            current_step += 1
         
-        # Add user message to conversation history
-        conversation_history.append(HumanMessage(content=user_query))
+        # Add user message to conversation history for post-assessment phase
+        if current_step > 5:
+            conversation_history.append(HumanMessage(content=user_query))
         
         # If all questions answered, generate the practice plan
         if current_step > 5:
             try:
                 response = llm.invoke(conversation_history)
-                print(f"🎵 Coach: {response.content}\n")
-                conversation_history.append(response)
-            except Exception as e:
-                print(f"❌ Error: {e}\n")
-        else:
-            # Still in assessment phase - move to next step
-            current_step += 1
-            
-            # Generate a brief acknowledgment from the AI
-            try:
-                response = llm.invoke(conversation_history)
-                # Extract just the acknowledgment if possible, skip the question since we'll ask the next one
                 print(f"🎵 Coach: {response.content}\n")
                 conversation_history.append(response)
             except Exception as e:

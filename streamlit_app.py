@@ -176,6 +176,8 @@ if "current_step" not in st.session_state:
     st.session_state.current_step = 0
 if "user_responses" not in st.session_state:
     st.session_state.user_responses = {}
+if "plan_generated" not in st.session_state:
+    st.session_state.plan_generated = False
 
 # Define the 5 assessment questions
 ASSESSMENT_QUESTIONS = [
@@ -353,35 +355,72 @@ if st.session_state.current_step < len(ASSESSMENT_QUESTIONS):
         with st.chat_message("user", avatar="🎸"):
             st.write(answer_input)
         
-        # Store the response
-        st.session_state.user_responses[f"step_{st.session_state.current_step + 1}"] = answer_input
+        # Check for out-of-context responses during assessment
+        out_of_context_keywords = [
+            "let's focus", "let's talk", "tell me", "explain", "how do",
+            "what about", "why", "when", "where", "show me", "help me",
+            "what is", "who is", "tell me about"
+        ]
         
-        # Add to message history
-        st.session_state.messages.append(HumanMessage(content=answer_input))
+        is_out_of_context = any(keyword in answer_input.lower() for keyword in out_of_context_keywords)
         
-        # Get acknowledgment from AI
-        with st.chat_message("assistant", avatar="🤖"):
-            with st.spinner("🎵 Coach is thinking..."):
-                try:
-                    response = st.session_state.llm.invoke(st.session_state.messages)
-                    st.write(response.content)
-                    st.session_state.messages.append(response)
-                except Exception as e:
-                    st.error(f"❌ Error: {e}")
-        
-        # Move to next step
-        st.session_state.current_step += 1
-        st.rerun()
+        if is_out_of_context:
+            # User provided out-of-context input - redirect them
+            with st.chat_message("assistant", avatar="🤖"):
+                st.write(f"I appreciate that! 🎸 Let's focus on creating your practice plan first.\n\nWe're on **question {question_number} of 5**: {current_question}")
+            st.info("Please answer the current question to continue.")
+            st.rerun()
+        else:
+            # Valid response - store it and move to next step
+            st.session_state.user_responses[f"step_{st.session_state.current_step + 1}"] = answer_input
+            
+            # Add to message history (store for reference after assessment is complete)
+            st.session_state.messages.append(HumanMessage(content=answer_input))
+            
+            # Move to next step
+            st.session_state.current_step += 1
+            st.rerun()
 
 else:
     # All assessment questions answered - generate practice plan
     if len(st.session_state.user_responses) == len(ASSESSMENT_QUESTIONS):
-        # Show responses collected
-        with st.expander("📋 Your Responses", expanded=False):
-            for i, (key, value) in enumerate(st.session_state.user_responses.items(), 1):
-                st.write(f"**Q{i}:** {value}")
+        # Check if we need to generate the initial practice plan
+        if "plan_generated" not in st.session_state:
+            # Generate the practice plan based on all 5 answers
+            plan_prompt = f"""Based on the following responses, create a personalized 30-minute practice session:
+
+1. Guitar Type: {st.session_state.user_responses.get('step_1', 'Not provided')}
+2. Skill Level: {st.session_state.user_responses.get('step_2', 'Not provided')}
+3. Genre/Style: {st.session_state.user_responses.get('step_3', 'Not provided')}
+4. Session Focus: {st.session_state.user_responses.get('step_4', 'Not provided')}
+5. Key/Mood: {st.session_state.user_responses.get('step_5', 'Not provided')}
+
+Create a detailed 30-minute practice plan with specific time slots and exercises tailored to these preferences."""
+            
+            # Add plan request to history
+            st.session_state.messages.append(HumanMessage(content=plan_prompt))
+            
+            # Generate plan from AI
+            with st.chat_message("assistant", avatar="🤖"):
+                with st.spinner("🎵 Coach is creating your personalized practice plan..."):
+                    try:
+                        response = st.session_state.llm.invoke(st.session_state.messages)
+                        st.write(response.content)
+                        st.session_state.messages.append(response)
+                        st.session_state.plan_generated = True
+                    except Exception as e:
+                        st.error(f"❌ Error generating plan: {e}")
         
-        # Input for additional requests
+        # Show responses collected (optional)
+        with st.expander("📋 Assessment Responses", expanded=False):
+            for i in range(1, len(ASSESSMENT_QUESTIONS) + 1):
+                response_key = f'step_{i}'
+                if response_key in st.session_state.user_responses:
+                    st.write(f"**Q{i}:** {st.session_state.user_responses[response_key]}")
+        
+        # Input for follow-up requests
+        st.markdown("---")
+        st.markdown("### Follow-up Questions")
         user_input = st.chat_input("Ask for adjustments to your practice plan or any follow-up questions:", key="user_input")
         
         if user_input:
@@ -394,7 +433,7 @@ else:
             
             # Get AI response
             with st.chat_message("assistant", avatar="🤖"):
-                with st.spinner("🎵 Coach is thinking..."):
+                with st.spinner("🎵 Coach is responding..."):
                     try:
                         response = st.session_state.llm.invoke(st.session_state.messages)
                         st.write(response.content)
