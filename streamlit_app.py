@@ -172,6 +172,19 @@ if "coach_prompt" not in st.session_state:
     st.session_state.coach_prompt = None
 if "initialized" not in st.session_state:
     st.session_state.initialized = False
+if "current_step" not in st.session_state:
+    st.session_state.current_step = 0
+if "user_responses" not in st.session_state:
+    st.session_state.user_responses = {}
+
+# Define the 5 assessment questions
+ASSESSMENT_QUESTIONS = [
+    "What guitar are you using today — acoustic or electric?",
+    "What's your current guitar level — beginner, intermediate, or advanced?",
+    "Which musical style or genre are you feeling today? Rock, blues, jazz, metal, pop, funk, or something else?",
+    "What kind of session structure would you like today: Technique & warm-ups, Chords & rhythm, Scales & soloing, Song learning, or Mixed routine?",
+    "What key or mood appeals to you right now — mellow, energetic, moody, or should I suggest one?"
+]
 
 
 def load_coach_prompt():
@@ -323,58 +336,77 @@ for message in st.session_state.messages[1:]:  # Skip system message
         with st.chat_message("assistant", avatar="🤖"):
             st.write(message.content)
 
-# Show example prompts if no messages (first interaction only)
-if len(st.session_state.messages) == 1:  # Only system message
-    st.markdown("### 💡 **Try asking me:**")
+# Show assessment questions if still in the assessment phase (steps 0-4)
+if st.session_state.current_step < len(ASSESSMENT_QUESTIONS):
+    # Show current question prominently
+    question_number = st.session_state.current_step + 1
+    current_question = ASSESSMENT_QUESTIONS[st.session_state.current_step]
     
-    example_prompts = [
-        "I don't know what to practice today, please help!",
-        "I need some motivation to practice today.",
-        "I'm a beginner looking to learn major scales.",
-        "What's the best way to warm up before practice?",
-        "Can you create a 30-minute practice plan for me?"
-    ]
+    st.markdown(f"### Question {question_number} of 5")
+    st.markdown(f"**{current_question}**")
     
-    cols = st.columns(2)
-    for idx, prompt in enumerate(example_prompts):
-        col = cols[idx % 2]
-        with col:
-            if st.button(f"📝 {prompt}", key=f"example_{idx}"):
-                st.session_state.example_prompt = prompt
-                st.rerun()
+    # Input for this question
+    answer_input = st.chat_input(f"Your answer to question {question_number}:", key=f"answer_{st.session_state.current_step}")
+    
+    if answer_input:
+        # Display user's answer
+        with st.chat_message("user", avatar="🎸"):
+            st.write(answer_input)
+        
+        # Store the response
+        st.session_state.user_responses[f"step_{st.session_state.current_step + 1}"] = answer_input
+        
+        # Add to message history
+        st.session_state.messages.append(HumanMessage(content=answer_input))
+        
+        # Get acknowledgment from AI
+        with st.chat_message("assistant", avatar="🤖"):
+            with st.spinner("🎵 Coach is thinking..."):
+                try:
+                    response = st.session_state.llm.invoke(st.session_state.messages)
+                    st.write(response.content)
+                    st.session_state.messages.append(response)
+                except Exception as e:
+                    st.error(f"❌ Error: {e}")
+        
+        # Move to next step
+        st.session_state.current_step += 1
+        st.rerun()
 
-# Handle example prompt click
-if "example_prompt" in st.session_state and st.session_state.example_prompt:
-    user_input = st.session_state.example_prompt
-    del st.session_state.example_prompt
 else:
-    user_input = None
-
-# Chat input
-chat_input = st.chat_input("Ask your Guitar Coach...", key="user_input")
-if chat_input:
-    user_input = chat_input
-
-if user_input:
-    # Add user message to display
-    with st.chat_message("user", avatar="🎸"):
-        st.write(user_input)
-    
-    # Add user message to history
-    st.session_state.messages.append(HumanMessage(content=user_input))
-    
-    # Get AI response
-    with st.chat_message("assistant", avatar="🤖"):
-        with st.spinner("🎵 Coach is thinking..."):
-            try:
-                response = st.session_state.llm.invoke(st.session_state.messages)
-                st.write(response.content)
-                
-                # Add response to history
-                st.session_state.messages.append(response)
-                
-            except Exception as e:
-                st.error(f"❌ Error: {e}")
+    # All assessment questions answered - generate practice plan
+    if len(st.session_state.user_responses) == len(ASSESSMENT_QUESTIONS):
+        # Show responses collected
+        with st.expander("📋 Your Responses", expanded=False):
+            for i, (key, value) in enumerate(st.session_state.user_responses.items(), 1):
+                st.write(f"**Q{i}:** {value}")
+        
+        # Input for additional requests
+        user_input = st.chat_input("Ask for adjustments to your practice plan or any follow-up questions:", key="user_input")
+        
+        if user_input:
+            # Display user input
+            with st.chat_message("user", avatar="🎸"):
+                st.write(user_input)
+            
+            # Add to history
+            st.session_state.messages.append(HumanMessage(content=user_input))
+            
+            # Get AI response
+            with st.chat_message("assistant", avatar="🤖"):
+                with st.spinner("🎵 Coach is thinking..."):
+                    try:
+                        response = st.session_state.llm.invoke(st.session_state.messages)
+                        st.write(response.content)
+                        st.session_state.messages.append(response)
+                    except Exception as e:
+                        st.error(f"❌ Error: {e}")
+    else:
+        # Show first question if no messages yet
+        if len(st.session_state.messages) == 1:
+            st.markdown("### Question 1 of 5")
+            st.markdown(f"**{ASSESSMENT_QUESTIONS[0]}**")
+            st.info("👇 Please answer the question above to get started!")
 
 # Footer
 st.markdown("---")

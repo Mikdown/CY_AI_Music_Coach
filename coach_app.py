@@ -338,13 +338,38 @@ def main():
     # Load the coach prompt
     coach_prompt = load_coach_prompt()
     
-    # Conversation loop
+    # Conversation loop with step tracking
     print("💬 Type 'exit' or 'quit' to end the conversation.\n")
     
     conversation_history = [SystemMessage(content=coach_prompt)]
     
+    # Track conversation step (1-5 for assessment questions)
+    current_step = 1
+    user_responses = {}
+    
+    questions = [
+        "What guitar are you using today — acoustic or electric?",
+        "What's your current guitar level — beginner, intermediate, or advanced?",
+        "Which musical style or genre are you feeling today? Rock, blues, jazz, metal, pop, funk, or something else?",
+        "What kind of session structure would you like today: Technique & warm-ups, Chords & rhythm, Scales & soloing, Song learning, or Mixed routine?",
+        "What key or mood appeals to you right now — mellow, energetic, moody, or should I suggest one?"
+    ]
+    
     while True:
-        # Get user input for the guitar coach
+        # If we haven't completed all 5 questions, ask the current step
+        if current_step <= 5:
+            if current_step == 1:
+                # First turn - greeting + question 1
+                print(f"🎵 Coach: Let's create your perfect 30-minute practice session!\n")
+                print(f"🎸 Coach: {questions[0]}\n")
+            else:
+                # Ask the current question
+                print(f"🎸 Coach: {questions[current_step - 1]}\n")
+        else:
+            # All questions answered - now get the AI to create the practice plan
+            print("🎵 Coach: Now let me create your personalized 30-minute practice plan...\n")
+        
+        # Get user input
         user_query = input("🎸 You: ")
         
         # Check for exit commands
@@ -353,22 +378,38 @@ def main():
             break
         
         if not user_query.strip():
-            print("⚠️  Please enter a question or comment.\n")
+            print("⚠️  Please enter a response.\n")
             continue
         
         print()
         
+        # Store response if in question phase
+        if current_step <= 5:
+            user_responses[f"question_{current_step}"] = user_query
+        
         # Add user message to conversation history
         conversation_history.append(HumanMessage(content=user_query))
         
-        # Invoke the LLM with full conversation history
-        response = llm.invoke(conversation_history)
-        
-        # Add AI response to conversation history
-        conversation_history.append(response)
-        
-        # Print the response
-        print(f"🎵 Coach: {response.content}\n")
+        # If all questions answered, generate the practice plan
+        if current_step > 5:
+            try:
+                response = llm.invoke(conversation_history)
+                print(f"🎵 Coach: {response.content}\n")
+                conversation_history.append(response)
+            except Exception as e:
+                print(f"❌ Error: {e}\n")
+        else:
+            # Still in assessment phase - move to next step
+            current_step += 1
+            
+            # Generate a brief acknowledgment from the AI
+            try:
+                response = llm.invoke(conversation_history)
+                # Extract just the acknowledgment if possible, skip the question since we'll ask the next one
+                print(f"🎵 Coach: {response.content}\n")
+                conversation_history.append(response)
+            except Exception as e:
+                print(f"❌ Error: {e}\n")
 
 
 if __name__ == "__main__":
