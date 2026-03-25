@@ -25,6 +25,7 @@ class State(TypedDict):
     messages: Annotated[list, add_messages]
 
 # Global variable for the researcher agent (will be set in main)
+assessor_agent = None
 researcher_agent = None
 writer_agent = None
 editor_agent = None
@@ -181,42 +182,115 @@ def create_retrieval_tool(vector_store):
     
     return search_music_knowledge_base
 
+async def assessor_node(state: State) -> Command[Literal["researcher", "__end__"]]:
+    """Assessor node that asks 5 questions and collects responses."""
+    print("\n" + "="*50)
+    print("ASSESSOR NODE")
+    print("="*50)
+    
+    # Define the 5 assessment questions
+    questions = [
+        "QUESTION 1: What guitar are you using today — acoustic or electric?",
+        "QUESTION 2: What's your current guitar level — beginner, intermediate, or advanced?",
+        "QUESTION 3: Which musical style or genre are you feeling today? Rock, blues, jazz, metal, pop, funk, or something else?",
+        "QUESTION 4: What kind of session structure would you like today: Technique & warm-ups, Chords & rhythm, Scales & soloing, Song learning, or Mixed routine?",
+        "QUESTION 5: What key or mood appeals to you right now — mellow, energetic, moody, or should I suggest one based on your style?"
+    ]
+    
+    # Collect answers for each question
+    answers = []
+    assessment_messages = list(state["messages"])  # Start with existing messages
+    
+    for i, question in enumerate(questions, 1):
+        print(f"\n{question}")
+        answer = input("Your answer: ").strip()
+        
+        # Add question and answer to messages for the researcher
+        assessment_messages.append(HumanMessage(content=question))
+        assessment_messages.append(HumanMessage(content=f"User's answer: {answer}"))
+        answers.append(answer)
+    
+    # Print summary of assessment
+    print("\n" + "="*50)
+    print("ASSESSMENT COMPLETE - Summary:")
+    print("="*50)
+    for i, (question, answer) in enumerate(zip(questions, answers), 1):
+        print(f"\nQ{i}: {question}")
+        print(f"A{i}: {answer}")
+    
+    print("\n" + "="*50 + "\n")
+    
+    # Pass the assessment responses to the researcher node
+    return Command(
+        update={"messages": assessment_messages},
+        goto="researcher"
+    )
+
 async def researcher_node(state: State) -> Command[Literal["writer", "__end__"]]:
     """Research node that hands off to writer."""
     print("\n" + "="*50)
     print("RESEARCHER NODE")
     print("="*50)
     
-    # Get the researcher agent from the closure
-    response = await researcher_agent.ainvoke({"messages": state["messages"]})
+    # Add a research instruction based on the assessment answers
+    research_instruction = SystemMessage(content="""Based on the user's assessment answers above, research and compile:
+1. Specific guitar techniques and exercises for their level and style
+2. Scale patterns and theory relevant to their chosen style
+3. Song recommendations or pieces matching their preferences
+4. Tips for their session structure preference
+Provide concrete, actionable research findings that will help create a personalized 30-minute practice plan.""")
     
-    # Debug: Print search results and tool usage
-    print("\n--- Research Results ---")
-    for msg in response["messages"]:
-        # Check for tool calls (AI messages with tool_calls)
-        if hasattr(msg, 'tool_calls') and msg.tool_calls:
-            for tool_call in msg.tool_calls:
-                print(f"\nTool Called: {tool_call.get('name', 'Unknown')}")
-                print(f"Arguments: {tool_call.get('args', {})}")
+    research_messages = list(state["messages"])
+    research_messages.append(research_instruction)
+    
+    print(f"\n📝 Invoking researcher agent with {len(research_messages)} messages...")
+    print(f"Researcher agent object: {researcher_agent}")
+    
+    try:
+        # Get the researcher agent to research based on assessment
+        print("⏳ Waiting for researcher agent response...")
+        response = await researcher_agent.ainvoke({"messages": research_messages})
+        print("✅ Researcher agent responded")
         
-        # Check for tool responses (ToolMessage)
-        if msg.type == "tool":
-            print(f"\nTool Response from: {getattr(msg, 'name', 'Unknown Tool')}")
-            content_preview = str(msg.content)[:500] + "..." if len(str(msg.content)) > 500 else str(msg.content)
-            print(f"Content: {content_preview}")
+        # Debug: Print search results and tool usage
+        print("\n--- Research Results ---")
+        for msg in response["messages"]:
+            # Check for tool calls (AI messages with tool_calls)
+            if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                for tool_call in msg.tool_calls:
+                    print(f"\nTool Called: {tool_call.get('name', 'Unknown')}")
+                    print(f"Arguments: {tool_call.get('args', {})}")
+            
+            # Check for tool responses (ToolMessage)
+            if msg.type == "tool":
+                print(f"\nTool Response from: {getattr(msg, 'name', 'Unknown Tool')}")
+                content_preview = str(msg.content)[:500] + "..." if len(str(msg.content)) > 500 else str(msg.content)
+                print(f"Content: {content_preview}")
+            
+            # Print AI responses (but not tool calls)
+            if msg.type == "ai" and not hasattr(msg, 'tool_calls'):
+                print(f"\nResearcher Response:")
+                print(f"{msg.content}")
         
-        # Print AI responses (but not tool calls)
-        if msg.type == "ai" and not hasattr(msg, 'tool_calls'):
-            print(f"\nResearcher Response:")
-            print(f"{msg.content}")
+        print("\n" + "="*50 + "\n")
+        
+        # Native handoff: explicitly tell the graph to move to 'writer'
+        return Command(
+            update={"messages": response["messages"]},
+            goto="writer"
+        )
     
-    print("\n" + "="*50 + "\n")
-    
-    # Native handoff: explicitly tell the graph to move to 'writer'
-    return Command(
-        update={"messages": response["messages"]},
-        goto="writer"
-    )
+    except Exception as e:
+        print(f"❌ Error in researcher node: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        # Return messages as-is to continue workflow
+        return Command(
+            update={"messages": research_messages},
+            goto="writer"
+        )
 
 async def writer_node(state: State) -> Command[Literal["editor", "__end__"]]:
     """Writer node that hands off to editor."""
@@ -270,7 +344,7 @@ async def editor_node(state: State) -> Command[Literal["writer", "__end__"]]:
 
 async def main():
     """Run the multi-agent content creation workflow."""
-    global researcher_agent, writer_agent, editor_agent
+    global assessor_agent, researcher_agent, writer_agent, editor_agent
     
     # Load environment variables
     load_dotenv()
@@ -298,6 +372,10 @@ async def main():
     print("\nOrchestration setup complete!")
 
     #Load prompts from local filesystem
+    with open("templates/assessor.json", "r") as f:
+        assessor_data = json.load(f)
+        assessor_prompt = assessor_data.get("template", "You are a helpful assessment agent.")
+
     with open("templates/researcher.json", "r") as f:
         researcher_data = json.load(f)
         researcher_prompt = researcher_data.get("template", "You are a helpful research assistant.")
@@ -353,6 +431,12 @@ async def main():
     print(f"Added knowledge base retrieval tool")
 
     # Create agents using create_agent (new API)
+    assessor_agent = create_agent(
+        llm, 
+        tools=[],
+        system_prompt=assessor_prompt
+    )
+
     researcher_agent = create_agent(
         llm, 
         tools=researcher_tools, 
@@ -373,22 +457,23 @@ async def main():
     )
     # Build the Graph without manual edges (Edgeless Handoff)
     builder = StateGraph(State)
+    builder.add_node("assessor", assessor_node)
     builder.add_node("researcher", researcher_node)
     builder.add_node("writer", writer_node)
     builder.add_node("editor", editor_node
     )
     
     # Set the entry point
-    builder.add_edge(START, "researcher")
+    builder.add_edge(START, "assessor")
     graph = builder.compile()
     
     # Run the workflow
     print("\n" + "="*50)
-    print("Starting Multi-Agent Content Creation Workflow")
+    print("🎸 Guitar Practice Plan Generator")
     print("="*50 + "\n")
     
-    user_input = input("Enter the topic that you would like to research:")
-    initial_message = HumanMessage(content=user_input)
+    print("Please answer these 5 questions to develop your 30 minute practice plan:\n")
+    initial_message = HumanMessage(content="Ready to start")
     result = await graph.ainvoke({"messages": [initial_message]})
     
     print("\n" + "="*50)
