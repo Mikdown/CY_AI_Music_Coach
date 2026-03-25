@@ -18,6 +18,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_core.tools import tool
 
 # 1. Define shared state
 class State(TypedDict):
@@ -137,6 +138,49 @@ def load_and_store_PDF(vector_store, file_path):
     except Exception as e:
         print(f"❌ Error loading {file_path}: {e}")
 
+def create_retrieval_tool(vector_store):
+    """
+    Create a retrieval tool from the vector store for the researcher agent to query.
+    
+    Args:
+        vector_store: The InMemoryVectorStore instance
+        
+    Returns:
+        A tool function that can be used by the agent
+    """
+    @tool
+    def search_music_knowledge_base(query: str) -> str:
+        """
+        Search the music knowledge base (scales and music theory documents) for information.
+        Use this tool to find information about scales, scale types, and other music theory concepts.
+        
+        Args:
+            query: The search query about music scales or theory
+            
+        Returns:
+            Relevant documents from the music knowledge base
+        """
+        try:
+            # Search the vector store for similar documents
+            results = vector_store.similarity_search(query, k=5)
+            
+            if not results:
+                return "No relevant documents found in the music knowledge base."
+            
+            # Format the results
+            formatted_results = []
+            for i, doc in enumerate(results, 1):
+                formatted_results.append(f"\n--- Document {i} ---")
+                formatted_results.append(f"Content: {doc.page_content}")
+                if doc.metadata:
+                    formatted_results.append(f"Source: {doc.metadata.get('fileName', 'Unknown')}")
+            
+            return "\n".join(formatted_results)
+        except Exception as e:
+            return f"Error searching knowledge base: {str(e)}"
+    
+    return search_music_knowledge_base
+
 async def researcher_node(state: State) -> Command[Literal["writer", "__end__"]]:
     """Research node that hands off to writer."""
     print("\n" + "="*50)
@@ -245,7 +289,7 @@ async def main():
     
     # Initialize LLM
     llm = ChatOpenAI(
-        model="openai/gpt-4o-mini",
+        model="openai/gpt-4o",
         temperature=0.7,
         base_url="https://models.github.ai/inference",
         api_key=os.getenv("GITHUB_TOKEN")
@@ -301,6 +345,12 @@ async def main():
     researcher_tools = await research_client.get_tools()
     
     print(f"Research tools: {[tool.name for tool in researcher_tools]}")
+    
+    # Create and add the vector store retrieval tool
+    retrieval_tool = create_retrieval_tool(vector_store)
+    researcher_tools.append(retrieval_tool)
+    
+    print(f"Added knowledge base retrieval tool")
 
     # Create agents using create_agent (new API)
     researcher_agent = create_agent(
