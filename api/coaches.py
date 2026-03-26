@@ -1,6 +1,7 @@
 """Extracted and refactored agent wrapper functions from new_coach_app.py"""
 
 import os
+import sys
 import json
 from datetime import datetime
 from typing import List, Dict
@@ -16,6 +17,13 @@ from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.tools import tool
 
+# Import YouTube search API
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'assets'))
+from youtube_search_API import (
+    initialize_youtube_client,
+    search_by_assessment_answers,
+    format_search_results
+)
 
 # Global session storage (in-memory; replace with database for production)
 sessions: Dict[str, Dict] = {}
@@ -317,3 +325,72 @@ def reset_session(session_id: str) -> bool:
         del sessions[session_id]
         return True
     return False
+
+
+def get_youtube_recommendations(
+    assessment_answers: Dict[str, str],
+    youtube_client = None
+) -> Dict[str, any]:
+    """
+    Get YouTube video recommendations based on the 5 assessment answers.
+    
+    Args:
+        assessment_answers: Dict with keys:
+            - guitar_type: Type of guitar (e.g., "acoustic", "electric")
+            - skill_level: Skill level (e.g., "beginner", "intermediate", "advanced")
+            - genre: Music genre (e.g., "blues", "rock", "jazz")
+            - session_focus: Session focus area (e.g., "finger dexterity", "chord transitions")
+            - mood: Mood preference (e.g., "energetic", "relaxed", "focused")
+        youtube_client: YouTube API client (optional, will be initialized if not provided)
+        
+    Returns:
+        Dict with two keys:
+            - "success": Boolean indicating if videos were found
+            - "videos": Formatted string with video links grouped by assessment category
+            - "raw_results": Raw video data organized by assessment key (if available)
+    """
+    # Initialize YouTube client if not provided
+    if youtube_client is None:
+        youtube_client = initialize_youtube_client()
+    
+    if not youtube_client:
+        return {
+            "success": False,
+            "videos": "YouTube API not configured. Please set YOUTUBE_API_KEY in your environment.",
+            "raw_results": {}
+        }
+    
+    try:
+        # Search for videos based on assessment answers
+        search_results = search_by_assessment_answers(
+            assessment_answers=assessment_answers,
+            youtube_client=youtube_client,
+            videos_per_topic=3
+        )
+        
+        # Check if any videos were found
+        has_videos = any(len(videos) > 0 for videos in search_results.values())
+        
+        if not has_videos:
+            return {
+                "success": False,
+                "videos": "No YouTube videos found for your assessment. Try searching manually on YouTube.",
+                "raw_results": search_results
+            }
+        
+        # Format results for display
+        formatted_videos = format_search_results(search_results)
+        
+        return {
+            "success": True,
+            "videos": formatted_videos,
+            "raw_results": search_results
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "videos": f"Error fetching YouTube videos: {str(e)}",
+            "raw_results": {}
+        }
+

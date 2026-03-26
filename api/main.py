@@ -11,7 +11,8 @@ from api.coaches import (
     initialize_agents_and_vector_store,
     generate_practice_plan,
     refine_plan,
-    reset_session
+    reset_session,
+    get_youtube_recommendations
 )
 
 
@@ -134,6 +135,45 @@ async def process_refinement(chat_message: ChatMessage):
         }
     except Exception as e:
         print(f"Error processing refinement: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/youtube-recommendations")
+async def get_video_recommendations(assessment: AssessmentAnswer):
+    """
+    Get YouTube video recommendations based on assessment answers.
+    
+    Args:
+        assessment: AssessmentAnswer with all 5 question responses
+            - guitar_type: Type of guitar (acoustic, electric, etc.)
+            - skill_level: Skill level (beginner, intermediate, advanced)
+            - genre: Music genre (rock, blues, jazz, etc.)
+            - session_focus: What to focus on (scales, chords, finger dexterity, etc.)
+            - mood: Practice mood (energetic, relaxed, focused, etc.)
+        
+    Returns:
+        Dict with YouTube video links grouped by assessment category
+    """
+    try:
+        # Convert assessment to dict
+        assessment_dict = {
+            "guitar_type": assessment.guitar_type,
+            "skill_level": assessment.skill_level,
+            "genre": assessment.genre,
+            "session_focus": assessment.session_focus,
+            "mood": assessment.mood
+        }
+        
+        # Get YouTube recommendations
+        result = get_youtube_recommendations(assessment_dict)
+        
+        return {
+            "success": result["success"],
+            "videos": result["videos"],
+            "raw_results": result.get("raw_results", {})
+        }
+    except Exception as e:
+        print(f"Error getting YouTube recommendations: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
