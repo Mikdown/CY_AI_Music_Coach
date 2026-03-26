@@ -3,7 +3,7 @@ import { coachAPI, AssessmentData } from '../services/api';
 import '../styles/AssessmentPhase.css';
 
 interface AssessmentPhaseProps {
-  onAssessmentComplete: (sessionId: string, plan: string) => void;
+  onAssessmentComplete: (sessionId: string, plan: string, assessment: AssessmentData) => void;
 }
 
 const ASSESSMENT_QUESTIONS = [
@@ -77,7 +77,7 @@ export const AssessmentPhase: React.FC<AssessmentPhaseProps> = ({ onAssessmentCo
         throw new Error('Invalid response: missing session_id or plan');
       }
       
-      onAssessmentComplete(response.session_id, response.plan);
+      onAssessmentComplete(response.session_id, response.plan, assessmentData);
     } catch (err: any) {
       console.error('❌ Error submitting assessment:', err);
       const errorMsg = err.response?.data?.detail || err.message || 'Failed to generate practice plan';

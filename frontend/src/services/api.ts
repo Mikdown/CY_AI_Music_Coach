@@ -74,6 +74,12 @@ export const coachAPI = {
     return response.data;
   },
 
+  // Get YouTube video recommendations based on assessment
+  getYouTubeRecommendations: async (assessment: AssessmentData) => {
+    const response = await apiClient.post('/youtube-recommendations', assessment);
+    return response.data;
+  },
+
   // Health check (root endpoint, not under /api)
   healthCheck: async () => {
     const response = await axios.get(

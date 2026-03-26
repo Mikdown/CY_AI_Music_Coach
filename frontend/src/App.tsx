@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AssessmentPhase } from './components/AssessmentPhase';
 import { PlanDisplay } from './components/PlanDisplay';
 import { RefinementChat } from './components/RefinementChat';
-import { coachAPI } from './services/api';
+import { coachAPI, AssessmentData } from './services/api';
 import './styles/App.css';
 
 type Phase = 'assessment' | 'plan' | 'refinement';
@@ -11,6 +11,7 @@ interface AppState {
   phase: Phase;
   sessionId: string | null;
   plan: string | null;
+  assessment: AssessmentData | null;
   error: string | null;
 }
 
@@ -19,6 +20,7 @@ function App() {
     phase: 'assessment',
     sessionId: null,
     plan: null,
+    assessment: null,
     error: null,
   });
 
@@ -49,11 +51,12 @@ function App() {
     checkHealth();
   }, []);
 
-  const handleAssessmentComplete = (sessionId: string, plan: string) => {
+  const handleAssessmentComplete = (sessionId: string, plan: string, assessment: AssessmentData) => {
     setAppState({
       phase: 'plan',
       sessionId,
       plan,
+      assessment,
       error: null,
     });
   };
@@ -85,6 +88,7 @@ function App() {
       phase: 'assessment',
       sessionId: null,
       plan: null,
+      assessment: null,
       error: null,
     });
   };
@@ -112,11 +116,12 @@ function App() {
         <AssessmentPhase onAssessmentComplete={handleAssessmentComplete} />
       )}
 
-      {appState.phase === 'plan' && appState.sessionId && appState.plan && (
+      {appState.phase === 'plan' && appState.sessionId && appState.plan && appState.assessment && (
         <div className="plan-page">
           <PlanDisplay
             sessionId={appState.sessionId}
             plan={appState.plan}
+            assessment={appState.assessment}
             onRefine={handleRefinePage}
           />
           <div className="plan-footer">
