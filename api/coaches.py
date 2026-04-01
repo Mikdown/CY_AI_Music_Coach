@@ -106,6 +106,56 @@ def create_retrieval_tool(vector_store):
     return search_music_knowledge_base
 
 
+def create_youtube_tool(youtube_client):
+    """Create a YouTube recommendations tool for the coach agent."""
+    @tool
+    def get_youtube_learning_videos(
+        guitar_type: str = "",
+        skill_level: str = "",
+        genre: str = "",
+        session_focus: str = "",
+        mood: str = ""
+    ) -> str:
+        """
+        Search YouTube for guitar learning videos based on assessment parameters.
+        Returns only properly validated videos that are public, embeddable, and have genuine engagement.
+        
+        Args:
+            guitar_type: Type of guitar (e.g., "acoustic", "electric")
+            skill_level: Skill level (e.g., "beginner", "intermediate", "advanced")
+            genre: Music genre (e.g., "blues", "rock", "jazz")
+            session_focus: Session focus area (e.g., "finger dexterity", "chord transitions")
+            mood: Mood preference (e.g., "energetic", "relaxed", "focused")
+            
+        Returns:
+            Formatted string with validated YouTube video recommendations
+        """
+        if not youtube_client:
+            return "YouTube API not configured. Please set YOUTUBE_API_KEY in your environment."
+        
+        assessment_answers = {
+            "guitar_type": guitar_type or "guitar",
+            "skill_level": skill_level or "beginner",
+            "genre": genre or "rock",
+            "session_focus": session_focus or "practice",
+            "mood": mood or "energetic"
+        }
+        
+        try:
+            # Get YouTube recommendations with strict validation
+            result = get_youtube_recommendations(assessment_answers, youtube_client)
+            
+            if result.get("success"):
+                return result.get("videos", "No videos found.")
+            else:
+                return result.get("videos", "Could not fetch videos.")
+                
+        except Exception as e:
+            return f"Error fetching YouTube videos: {str(e)}"
+    
+    return get_youtube_learning_videos
+
+
 def initialize_agents_and_vector_store():
     """
     Initialize LLM, vector store, and all agents.
@@ -154,6 +204,13 @@ def initialize_agents_and_vector_store():
     load_and_store_CSV(vector_store, "assets/scales.csv")
     load_and_store_CSV(vector_store, "assets/scale_types.csv")
     
+    # Initialize YouTube client and create YouTube tool
+    youtube_client = initialize_youtube_client()
+    youtube_tool = create_youtube_tool(youtube_client) if youtube_client else None
+    
+    # Prepare tools list
+    tools_for_coach = [youtube_tool] if youtube_tool else []
+    
     # Create agents
     assessor_agent = create_agent(
         llm,
@@ -186,7 +243,10 @@ def initialize_agents_and_vector_store():
         "researcher_agent": researcher_agent,
         "writer_agent": writer_agent,
         "editor_agent": editor_agent,
-        "retrieval_tool": create_retrieval_tool(vector_store)
+        "retrieval_tool": create_retrieval_tool(vector_store),
+        "youtube_tool": youtube_tool,
+        "youtube_client": youtube_client,
+        "tools_for_coach": tools_for_coach
     }
 
 
@@ -197,6 +257,7 @@ async def generate_practice_plan(
 ) -> str:
     """
     Generate a 30-minute practice plan based on assessment answers.
+    The plan will include YouTube video recommendations based on the assessment.
     
     Args:
         assessment_answers: Dict with keys: guitar_type, skill_level, genre, session_focus, mood
@@ -207,6 +268,7 @@ async def generate_practice_plan(
         Generated practice plan as a string
     """
     llm = components["llm"]
+    youtube_tool = components.get("youtube_tool")
     coach_template_path = "templates/coach.json"
     
     try:
@@ -214,7 +276,9 @@ async def generate_practice_plan(
             coach_data = json.load(f)
             coach_prompt = coach_data.get("template", "You are a helpful guitar coach.")
     except FileNotFoundError:
-        coach_prompt = "You are a helpful guitar coach. Create a 30-minute practice plan with specific time allocations."
+        coach_prompt = """You are a helpful guitar coach. Create a 30-minute practice plan with specific time allocations.
+When appropriate, use the get_youtube_learning_videos tool to find relevant learning videos for the student's level and interests.
+Include video recommendations in the practice plan where they would be helpful."""
     
     # Format assessment summary
     assessment_summary = f"""Assessment Results:
@@ -224,12 +288,14 @@ async def generate_practice_plan(
 - Session Focus: {assessment_answers.get('session_focus', 'Not specified')}
 - Mood: {assessment_answers.get('mood', 'Not specified')}
 
-Based on these answers, create a personalized 30-minute guitar practice plan."""
+Based on these answers, create a personalized 30-minute guitar practice plan. 
+Include YouTube video recommendations using the get_youtube_learning_videos tool to help the student learn."""
     
-    # Create coach instance with plan-generation purpose
+    # Create coach agent with YouTube tool
+    coach_tools = [youtube_tool] if youtube_tool else []
     coach_agent = create_agent(
         llm,
-        tools=[],
+        tools=coach_tools,
         system_prompt=coach_prompt
     )
     
