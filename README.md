@@ -12,61 +12,57 @@ An AI-powered guitar practice coaching application that helps musicians design a
 
 ## Architecture
 
-### Coach App (coach_app.py)
+### API Layer (api/coaches.py)
 
-The main CLI application that powers the AI coaching experience.
+The backend API module that powers the AI coaching experience with FastAPI integration.
 
 #### Key Components
 
-**Initialization**
+**Initialization** (`initialize_agents_and_vector_store()`)
 - **LLM Provider**: OpenAI GPT-4o via GitHub Models (`https://models.github.ai/inference`)
 - **Embeddings**: OpenAI text-embedding-3-small for semantic understanding
 - **Vector Store**: In-memory vectorstore for knowledge retrieval during conversations
-- **Text Splitter**: RecursiveCharacterTextSplitter with 2000-character chunks and 50-character overlap for optimal processing
+- **Text Splitter**: RecursiveCharacterTextSplitter with 2000-character chunks and 50-character overlap
+- **Tavily Integration**: MCP (Model Context Protocol) client for web research capabilities
+- **YouTube Integration**: Custom YouTube search tool for video recommendations
 
 #### Core Functions
 
-**`load_coach_prompt()`**
-- Loads the Guitar Coach AI system prompt from `assets/coach_prompt.json`
-- Falls back to a default prompt if file is not found
-- Returns a string containing the system role and behavioral guidelines
+**`initialize_agents_and_vector_store()`** (async)
+- Validates required API keys (GITHUB_TOKEN, TAVILY_API_KEY)
+- Initializes LLM with GitHub Models
+- Sets up vector store with CSV scale data
+- Loads PDF documents from assets directory
+- Initializes Tavily MCP client for research capabilities
+- Creates specialized agents: assessor, researcher, writer, editor
+- Returns dictionary with all initialized components
 
-**`get_default_coach_prompt()`**
-- Provides a fallback system prompt
-- Used when `coach_prompt.json` is unavailable
-- Defines the coach as a warm, knowledgeable guitar instructor focused on 30-minute practice sessions
+**`generate_practice_plan()`** (async)
+- Generates personalized 30-minute practice plans based on assessment answers
+- Uses YouTube tool to find relevant learning videos
+- Maintains session state for practice tracking
+- Args: assessment answers (guitar type, skill level, genre, focus, mood)
+- Returns: Formatted practice plan with video recommendations
 
-**`load_and_store_documents(vector_store, file_path)`**
-- Loads scale data from CSV files into the vector store
-- Reads CSV rows and converts them to Document objects
-- Chunks documents into optimal sizes for semantic search
-- Adds metadata including filename, creation timestamp, and source information
+**`refine_plan()`** (async)
+- Refines practice plans based on user feedback
+- Maintains conversation history for context
+- Args: refinement request message, session ID
+- Returns: Updated practice plan with specific time allocations
 
-**`load_document_with_chunks(vector_store, file_path, chunks)`**
-- Stores pre-chunked documents in the vector store
-- Adds detailed metadata tracking for each chunk (index, filename, timestamp)
-- Returns count of successfully stored chunks
+**`get_youtube_recommendations()`**
+- Searches YouTube for relevant guitar learning content
+- Filters results by skill level and genre
+- Returns formatted video recommendations with links
 
-**`main()`**
-- Entry point for the CLI application
-- Validates environment variables (GITHUB_TOKEN required)
-- Initializes all components (LLM, embeddings, vector store)
-- Loads knowledge base from `assets/scales.csv`
-- Implements conversation loop with:
-  - `SystemMessage`: Contains the coach prompt for consistent persona
-  - `HumanMessage`: User queries
-  - `AIMessage`: Coach responses
-- Maintains full conversation history for context awareness
-- Exits on commands: `exit`, `quit`, `bye`, `goodbye`
+**`create_youtube_tool()`**
+- Wraps YouTube search functionality as a LangChain tool
+- Enables agents to autonomously search for videos during plan generation
 
-#### Conversation Flow
-
-1. **Initialization**: Coach prompt loaded and system message established
-2. **User Input**: Reads guitar practice question or topic
-3. **Semantic Context**: Vector store can provide relevant scale information (when queried)
-4. **LLM Processing**: OpenAI processes full conversation history for contextual response
-5. **History Management**: Both user message and AI response added to conversation history
-6. **Output**: Coach response displayed with emoji formatting
+**`load_and_store_CSV()`**
+- Loads guitar scale data from CSV files into vector store
+- Chunks documents for optimal semantic search
+- Supports multiple CSV files (scales.csv, scale_types.csv)
 
 #### Configuration
 
@@ -82,15 +78,31 @@ The main CLI application that powers the AI coaching experience.
 
 ```
 CY_AI_Music_Coach/
-├── coach_app.py              # Main CLI application
-├── streamlit_app.py          # Web UI interface
+├── api/
+│   ├── main.py               # FastAPI application server
+│   ├── coaches.py            # Core coaching agents and functions
+│   ├── models.py             # Pydantic data models
+│   └── requirements.txt       # API dependencies
+├── frontend/                 # Vite/React TypeScript frontend
+│   ├── src/
+│   │   ├── components/       # React components
+│   │   ├── services/         # API client services
+│   │   └── styles/           # Component styling
+│   └── vite.config.ts        # Vite configuration
+├── templates/                # Agent system prompts (JSON)
+│   ├── assessor.json
+│   ├── researcher.json
+│   ├── writer.json
+│   └── editor.json
 ├── assets/
-│   ├── scales.csv           # Guitar scale knowledge base
-│   ├── coach_prompt.json    # AI coach system prompt
-│   └── scrape_scales.py     # Web scraper for scale data
+│   ├── scales.csv            # Guitar scale knowledge base
+│   ├── scale_types.csv       # Scale type definitions
+│   └── scrape_scales.py      # Web scraper for scale data
+├── start.sh                  # Main startup script (API + frontend)
+├── run_streamlit.sh          # Legacy Streamlit interface launcher
 ├── .env                      # Environment variables (API keys)
-├── requirements.txt          # Python dependencies
-└── README.md                # This file
+├── requirements.txt          # Root Python dependencies
+└── README.md                 # This file
 ```
 
 ## Required Dependencies
@@ -103,23 +115,46 @@ CY_AI_Music_Coach/
 
 ## Usage
 
-### CLI Mode
+### Quick Start
 
+The easiest way to start the complete application (API server + frontend) is:
+
+```bash
+# Make sure you're in the project directory
+cd /Users/miked/CY_AI_Music_Coach
+
+# Run the startup script
+./start.sh
+```
+
+This starts:
+- **FastAPI server** on `http://localhost:8000` (API endpoints)
+- **Frontend application** with Vite dev server
+- All components with proper async initialization
+
+### Manual Setup
+
+**For API server only:**
 ```bash
 # Activate virtual environment
 source .venv/bin/activate
 
-# Run the CLI coach
-python coach_app.py
+# Start FastAPI server
+uvicorn api.main:app --reload
 ```
 
-### Web Interface
-
+**For Streamlit interface:**
 ```bash
 # Run the Streamlit app
 ./run_streamlit.sh
 # or
 streamlit run streamlit_app.py
+```
+
+**For CLI testing:**
+```bash
+# Test PDF loading and component initialization
+python test_pdf_loading.py
 ```
 
 ## How It Works
