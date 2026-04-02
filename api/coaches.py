@@ -350,7 +350,7 @@ def create_youtube_tool(youtube_client):
     return get_youtube_learning_videos
 
 
-def initialize_agents_and_vector_store():
+async def initialize_agents_and_vector_store():
     """
     Initialize LLM, vector store, and all agents.
     Returns a dictionary with all initialized components.
@@ -408,6 +408,27 @@ def initialize_agents_and_vector_store():
     youtube_client = initialize_youtube_client()
     youtube_tool = create_youtube_tool(youtube_client) if youtube_client else None
     
+    # Get Tavily API key from environment
+    tavily_api_key = os.getenv("TAVILY_API_KEY")
+    
+    # Create MCP client for Tavily research
+    research_tools = []
+    research_client = None
+    try:
+        research_client = MultiServerMCPClient({
+            "tavily": {
+                "transport": "streamable_http",
+                "url": f"https://mcp.tavily.com/mcp/?tavilyApiKey={tavily_api_key}",
+            }
+        })
+        
+        # Get tools from the client
+        research_tools = await research_client.get_tools()
+        print(f"✓ Tavily research tools loaded: {[tool.name for tool in research_tools]}")
+    except Exception as e:
+        print(f"⚠️  Warning: Could not initialize Tavily MCP client: {str(e)}")
+        research_tools = []
+    
     # Prepare tools list
     tools_for_coach = [youtube_tool] if youtube_tool else []
     
@@ -420,7 +441,7 @@ def initialize_agents_and_vector_store():
     
     researcher_agent = create_agent(
         llm,
-        tools=[],  # Tools will be added dynamically
+        tools=research_tools,  # Add Tavily research tools
         system_prompt=templates.get("researcher", "You are a helpful assistant.")
     )
     
@@ -446,6 +467,8 @@ def initialize_agents_and_vector_store():
         "retrieval_tool": create_retrieval_tool(vector_store),
         "youtube_tool": youtube_tool,
         "youtube_client": youtube_client,
+        "research_tools": research_tools,
+        "research_client": research_client,
         "tools_for_coach": tools_for_coach,
         "vector_store_verification": verification_results,
         "pdf_load_results": pdf_load_results

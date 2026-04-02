@@ -26,7 +26,8 @@ def test_pdf_loading():
     try:
         # Initialize components
         print("1️⃣  Initializing agents and vector store...")
-        components = initialize_agents_and_vector_store()
+        import asyncio
+        components = asyncio.run(initialize_agents_and_vector_store())
         print("✅ Components initialized successfully\n")
         
         # Get vector store and results

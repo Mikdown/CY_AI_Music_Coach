@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
     """Initialize components on startup."""
     global components
     try:
-        components = initialize_agents_and_vector_store()
+        components = await initialize_agents_and_vector_store()
         print("✅ Components initialized successfully")
     except Exception as e:
         print(f"❌ Error initializing components: {e}")
