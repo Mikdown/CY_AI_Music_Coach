@@ -16,6 +16,7 @@ from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.tools import tool
+from langchain_community.document_loaders import PyPDFLoader
 
 # Import YouTube search API
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'assets'))
@@ -71,6 +72,192 @@ def load_and_store_CSV(vector_store, file_path):
         print(f"❌ File not found: {file_path}")
     except Exception as e:
         print(f"❌ Error loading {file_path}: {e}")
+
+
+def load_and_store_PDF(vector_store, file_path):
+    """
+    Load documents from a PDF file and store them in the vector store.
+    
+    Args:
+        vector_store: The InMemoryVectorStore instance
+        file_path: Path to the PDF file
+    """
+    try:
+        documents = []
+        file_name = os.path.basename(file_path)
+        
+        # Initialize text splitter for chunking content
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=2000,
+            chunk_overlap=50,
+            separators=["\n\n", "\n", " ", ""]
+        )
+        
+        # Load PDF using PyPDFLoader
+        loader = PyPDFLoader(file_path)
+        pages = loader.load()
+        
+        # Process each page
+        for page_num, page in enumerate(pages):
+            # Create metadata
+            metadata = {
+                "fileName": file_name,
+                "pageNumber": page_num + 1,
+                "createdAt": datetime.now().isoformat(),
+                "source": file_path
+            }
+            
+            # Add page metadata from the loader
+            if hasattr(page, 'metadata'):
+                metadata.update(page.metadata)
+            
+            # Create document with page content
+            doc = Document(
+                page_content=page.page_content,
+                metadata=metadata
+            )
+            documents.append(doc)
+        
+        if documents:
+            # Split documents into chunks
+            split_docs = text_splitter.split_documents(documents)
+            vector_store.add_documents(split_docs)
+            print(f"✅ Loaded {len(documents)} pages ({len(split_docs)} chunks) from {file_name}")
+            return {
+                "success": True,
+                "file_name": file_name,
+                "pages_loaded": len(documents),
+                "chunks_created": len(split_docs)
+            }
+        else:
+            print(f"⚠️  No content found in {file_name}")
+            return {
+                "success": False,
+                "file_name": file_name,
+                "error": "No content found"
+            }
+        
+    except FileNotFoundError:
+        print(f"❌ File not found: {file_path}")
+        return {
+            "success": False,
+            "file_name": os.path.basename(file_path),
+            "error": f"File not found: {file_path}"
+        }
+    except Exception as e:
+        print(f"❌ Error loading {file_path}: {e}")
+        return {
+            "success": False,
+            "file_name": os.path.basename(file_path),
+            "error": str(e)
+        }
+
+
+
+
+def verify_vector_store_contents(vector_store):
+    """
+    Verify that documents have been loaded into the vector store.
+    
+    Args:
+        vector_store: The InMemoryVectorStore instance
+        
+    Returns:
+        Dict with verification results
+    """
+    try:
+        # Perform a simple search to verify the vector store has content
+        # Use a generic query to ensure we get some results if data exists
+        test_query = "scale technique music" 
+        results = vector_store.similarity_search(test_query, k=1)
+        
+        # Check the store's internal documents (if accessible)
+        if hasattr(vector_store, '_data') and hasattr(vector_store._data, '__len__'):
+            num_documents = len(vector_store._data)
+        else:
+            # Fallback: check if we got results
+            num_documents = len(results) if results else 0
+        
+        verification = {
+            "vector_store_initialized": True,
+            "has_content": len(results) > 0,
+            "sample_search_results": len(results),
+        }
+        
+        if results:
+            # Show sample documents loaded
+            print("\n" + "="*60)
+            print("VECTOR STORE VERIFICATION - Sample Data")
+            print("="*60)
+            for i, doc in enumerate(results, 1):
+                source = doc.metadata.get('fileName', 'Unknown') if doc.metadata else 'Unknown'
+                page = doc.metadata.get('pageNumber', '') if doc.metadata else ''
+                page_info = f" (Page {page})" if page else ""
+                print(f"✅ Sample {i}: {source}{page_info}")
+                print(f"   Content preview: {doc.page_content[:100]}...")
+            print("="*60 + "\n")
+            
+            return verification
+        else:
+            print("\n⚠️  Warning: Vector store appears to be empty after loading.")
+            return verification
+            
+    except Exception as e:
+        print(f"❌ Error verifying vector store: {e}")
+        return {
+            "vector_store_initialized": False,
+            "has_content": False,
+            "error": str(e)
+        }
+
+
+def load_pdf_files(vector_store, pdf_directory="assets"):
+    """
+    Load all PDF files from a directory into the vector store.
+    
+    Args:
+        vector_store: The InMemoryVectorStore instance
+        pdf_directory: Directory containing PDF files
+        
+    Returns:
+        Dict with summary of PDFs loaded
+    """
+    pdf_results = []
+    
+    # Check if directory exists
+    if not os.path.isdir(pdf_directory):
+        print(f"⚠️  Directory not found: {pdf_directory}")
+        return {"success": False, "pdfs_loaded": [], "error": f"Directory not found: {pdf_directory}"}
+    
+    # Find all PDF files in the directory
+    pdf_files = [f for f in os.listdir(pdf_directory) if f.lower().endswith('.pdf')]
+    
+    if not pdf_files:
+        print(f"ℹ️  No PDF files found in {pdf_directory}")
+        return {"success": True, "pdfs_loaded": [], "message": "No PDFs found"}
+    
+    print(f"\n🔍 Found {len(pdf_files)} PDF file(s) in {pdf_directory}")
+    print("="*60)
+    
+    # Load each PDF file
+    for pdf_file in pdf_files:
+        pdf_path = os.path.join(pdf_directory, pdf_file)
+        print(f"\n📄 Loading: {pdf_file}")
+        result = load_and_store_PDF(vector_store, pdf_path)
+        pdf_results.append(result)
+        
+        if result.get("success"):
+            print(f"   ✅ Success: {result['pages_loaded']} pages, {result['chunks_created']} chunks")
+        else:
+            print(f"   ❌ Failed: {result.get('error', 'Unknown error')}")
+    
+    print("\n" + "="*60)
+    return {
+        "success": True,
+        "pdfs_loaded": pdf_results,
+        "total_pdfs": len(pdf_files),
+        "successful": sum(1 for r in pdf_results if r.get("success"))
+    }
 
 
 def create_retrieval_tool(vector_store):
@@ -204,6 +391,12 @@ def initialize_agents_and_vector_store():
     load_and_store_CSV(vector_store, "assets/scales.csv")
     load_and_store_CSV(vector_store, "assets/scale_types.csv")
     
+    # Load PDF files from assets directory
+    pdf_load_results = load_pdf_files(vector_store, pdf_directory="assets")
+    
+    # Verify vector store contents
+    verification_results = verify_vector_store_contents(vector_store)
+    
     # Initialize YouTube client and create YouTube tool
     youtube_client = initialize_youtube_client()
     youtube_tool = create_youtube_tool(youtube_client) if youtube_client else None
@@ -246,7 +439,9 @@ def initialize_agents_and_vector_store():
         "retrieval_tool": create_retrieval_tool(vector_store),
         "youtube_tool": youtube_tool,
         "youtube_client": youtube_client,
-        "tools_for_coach": tools_for_coach
+        "tools_for_coach": tools_for_coach,
+        "vector_store_verification": verification_results,
+        "pdf_load_results": pdf_load_results
     }
 
 
