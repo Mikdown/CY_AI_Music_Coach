@@ -4,7 +4,7 @@ import os
 import sys
 import json
 from datetime import datetime
-from typing import List, Dict
+from typing import List, Dict, Any
 import asyncio
 from dotenv import load_dotenv
 
@@ -598,7 +598,7 @@ def reset_session(session_id: str) -> bool:
 def get_youtube_recommendations(
     assessment_answers: Dict[str, str],
     youtube_client = None
-) -> Dict[str, any]:
+) -> Dict[str, Any]:
     """
     Get YouTube video recommendations based on the 5 assessment answers.
     
