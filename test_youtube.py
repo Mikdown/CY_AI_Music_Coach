@@ -19,7 +19,7 @@ else:
 
 # Try importing
 try:
-    from assets.youtube_search_API import initialize_youtube_client, search_youtube_videos
+    from youtube_search_API import initialize_youtube_client, search_youtube_videos
     print("✅ Imports successful")
 except Exception as e:
     print(f"❌ Import error: {e}")

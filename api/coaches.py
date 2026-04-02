@@ -19,12 +19,19 @@ from langchain_core.tools import tool
 from langchain_community.document_loaders import PyPDFLoader
 
 # Import YouTube search API
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'assets'))
-from youtube_search_API import (
-    initialize_youtube_client,
-    search_by_assessment_answers,
-    format_search_results
-)
+# Add root directory to path for imports
+_root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _root_dir not in sys.path:
+    sys.path.insert(0, _root_dir)
+
+try:
+    from youtube_search_API import (
+        initialize_youtube_client,
+        search_by_assessment_answers,
+        format_search_results
+    )
+except ImportError as e:
+    raise ImportError(f"Could not load youtube_search_API module: {e}")
 
 # Global session storage (in-memory; replace with database for production)
 sessions: Dict[str, Dict] = {}
