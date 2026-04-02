@@ -143,14 +143,6 @@ source .venv/bin/activate
 uvicorn api.main:app --reload
 ```
 
-**For Streamlit interface:**
-```bash
-# Run the Streamlit app
-./run_streamlit.sh
-# or
-streamlit run streamlit_app.py
-```
-
 **For CLI testing:**
 ```bash
 # Test PDF loading and component initialization
@@ -171,7 +163,5 @@ python test_pdf_loading.py
 🎸 Welcome to Guitar Coach AI! 🎸
 Let's create your perfect 30-minute practice session.
 
-🎸 You: I'm a beginner and want to learn major scales
-🎵 Coach: Great choice! Major scales are fundamental...
-[Conversation continues with context preserved]
+🎸 You: Simply answer the 5 questions provided by the UI.
 ```
